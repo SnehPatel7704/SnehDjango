@@ -30,11 +30,26 @@
     </style>
 </head>
 <body>
-    <div class="container p-5">
+    <!-- <div class="container p-5">
         <h1 class="pl-5"> Movies </h1>
         <p><a href="/">Back to Home</a></p>
-    </div>
+    </div> -->
     <div id="movie-list">
+        <form method="GET" class="search-form" style="margin-bottom: 30px; text-align: center;">
+            <input 
+            type="text" 
+            name="user_input" 
+            placeholder="Search for a movie..." 
+            value="{{ query }}"
+            style="padding: 8px 14px; border: 1px solid #ccc; border-radius: 4px; width: 220px; font-size: 16px;"
+            >
+            <button 
+            type="submit"
+            style="padding: 8px 18px; border: none; border-radius: 4px; background-color: #007bff; color: #fff; font-size: 16px; cursor: pointer; margin-left: 8px;"
+            >
+            Search
+            </button>
+        </form>
         {% for movie in movies %}
         <div class="movie-card">
             <h3>{{ movie.name }}</h3>

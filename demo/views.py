@@ -20,4 +20,15 @@ def robo(request):
     return render(request, 'robo.html', {"robots": robots})
 
 def movie(request):
-    return render(request, 'movies.html', {"movies": movies})
+    query = request.GET.get("user_input")
+
+    if query:
+        mymovies = [movie for movie in movies if query.lower() in movie['name'].lower()]
+        # print(mymovies)
+        if not mymovies:
+            mymovies = [{"name": "No results found", "genre": "", "releaseYear": ""}]
+    else:
+        mymovies = movies
+
+    return render(request, 'movies.html', {"movies": mymovies})
+    # return render(request, 'movies.html')
