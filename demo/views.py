@@ -32,3 +32,24 @@ def movie(request):
 
     return render(request, 'movies.html', {"movies": mymovies})
     # return render(request, 'movies.html')
+
+
+
+
+def movie(request):
+    query = request.GET.get("user_input")
+
+    if query:
+        mymovies = [
+            movie for movie in movies 
+            if query.lower() in movie['name'].lower() or 
+               query.lower() in movie['genre'].lower() or 
+               query == str(movie['releaseYear'])
+        ]
+        
+        if not mymovies:
+            mymovies = [{"name": "No results found", "genre": "", "releaseYear": ""}]
+    else:
+        mymovies = movies
+
+    return render(request, 'movies.html', {"movies": mymovies})
