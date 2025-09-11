@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatMCA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to enhance Tailwind classes */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Scrollbar styling for a cleaner look */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #1f2937; /* A bit lighter than the main container */
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            border-radius: 4px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background-color: #6b7280;
+        }
+
+    </style>
+</head>
+
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center py-8">
+    <div class="chat-container w-full max-w-2xl h-[90vh] flex flex-col bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+        
+        <div class="chat-header relative p-4 sm:p-6 bg-gray-800 border-b border-gray-700 text-center text-xl sm:text-2xl font-bold text-sky-400">
+            ChatMCA
+            <button id="clear-button" class="absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 text-sm font-medium text-gray-400 hover:text-red-400 transition-colors duration-200">
+                Clear
+            </button>
+        </div>
+
+        <div id="messages" class="chat-messages flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
+            <div id="welcome-message" class="assistant-message max-w-3/4 self-start bg-gray-800 text-gray-200 p-4 rounded-xl rounded-bl-none shadow-md">
+                Hello! I am ChatMCA. How can I help you today?
+            </div>
+
+            {% for message in chat_history %}
+            {% if message.role == 'user' %}
+            <div class="user-message max-w-3/4 self-end bg-sky-600 text-white p-4 rounded-xl rounded-br-none shadow-lg">
+                {{ message.content }}
+            </div>
+            {% else %}
+            <div class="assistant-message max-w-3/4 self-start bg-gray-800 text-gray-200 p-4 rounded-xl rounded-bl-none shadow-md">
+                {{ message.content }}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="chat-input-area p-4 sm:p-6 border-t border-gray-700 bg-gray-900">
+            <form id="chat-form" method="post" class="w-full flex space-x-4">
+                {% csrf_token %}
+                <input type="text" name="message" id="chat-input" placeholder="Send a message..." class="flex-1 px-5 py-3 rounded-full bg-gray-800 border border-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-200">
+                <button type="submit" id="send-button" class="px-6 py-3 bg-sky-500 text-white font-semibold rounded-full hover:bg-sky-600 transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const messagesContainer = document.getElementById('messages');
+        const sendButton = document.getElementById('send-button');
+        const clearButton = document.getElementById('clear-button');
+        const welcomeMessage = document.getElementById('welcome-message');
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addMessage(role, content) {
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.textContent = content;
+
+            if (role === 'user') {
+                bubbleDiv.classList.add('user-message', 'max-w-3/4', 'self-end', 'bg-sky-600', 'text-white', 'p-4', 'rounded-xl', 'rounded-br-none', 'shadow-lg');
+            } else {
+                bubbleDiv.classList.add('assistant-message', 'max-w-3/4', 'self-start', 'bg-gray-800', 'text-gray-200', 'p-4', 'rounded-xl', 'rounded-bl-none', 'shadow-md');
+            }
+            messagesContainer.appendChild(bubbleDiv);
+            scrollToBottom();
+        }
+
+        chatForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            addMessage('user', userMessage);
+            chatInput.value = '';
+            sendButton.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('message', userMessage);
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+                const response = await fetch('', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const assistantMessage = data.chat_history[data.chat_history.length - 1];
+                    addMessage('assistant', assistantMessage.content);
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error from server:", errorData.error);
+                    addMessage('assistant', `Error: ${errorData.error}`);
+                }
+            } catch (error) {
+                console.error("Network or fetch error:", error);
+                addMessage('assistant', "I'm sorry, an error occurred. Please try again.");
+            } finally {
+                sendButton.disabled = false;
+            }
+        });
+
+        // Event listener for the clear button
+        clearButton.addEventListener('click', async function() {
+            const confirmed = confirm("Are you sure you want to clear the chat?");
+            if (!confirmed) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('clear_history', 'true');
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+                const response = await fetch('', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        // Clear all messages from the UI except the welcome message
+                        const messages = messagesContainer.querySelectorAll('.user-message, .assistant-message');
+                        messages.forEach(msg => {
+                            if (msg !== welcomeMessage) {
+                                msg.remove();
+                            }
+                        });
+                        console.log("Chat history cleared from server.");
+                    }
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error clearing chat:", errorData.error);
+                }
+            } catch (error) {
+                console.error("Network or fetch error:", error);
+            }
+        });
+
+        window.onload = scrollToBottom;
+    </script>
+
+</body>
+</html>
