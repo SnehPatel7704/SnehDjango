@@ -4,60 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .movie-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px;
-            display: inline-block;
-            width: 220px;
-            height: 430px;
-            text-align: center;
-            vertical-align: top;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-            transition: 0.3s;
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        .movie-card:hover {
-            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+        .gradient-bg {
+            background: linear-gradient(270deg, #0f172a, #131d3e, #1e293b);
+            background-size: 600% 600%;
+            animation: gradient 16s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         .movie-card img {
-            width: 100%;
-            height: 280px;
+            aspect-ratio: 2 / 3;
             object-fit: cover;
-            border-radius: 5px;
         }
     </style>
 </head>
-<body>
-    <!-- <div class="container p-5">
-        <h1 class="pl-5"> Movies </h1>
-        <p><a href="/">Back to Home</a></p>
-    </div> -->
-    <div id="movie-list">
-        <form method="GET" class="search-form" style="margin-bottom: 30px; text-align: center;">
-            <input 
-            type="text" 
-            name="user_input" 
-            placeholder="Search for a movie..." 
-            value="{{ query }}"
-            style="padding: 8px 14px; border: 1px solid #ccc; border-radius: 4px; width: 220px; font-size: 16px;"
-            >
-            <button 
-            type="submit"
-            style="padding: 8px 18px; border: none; border-radius: 4px; background-color: #007bff; color: #fff; font-size: 16px; cursor: pointer; margin-left: 8px;"
-            >
-            Search
-            </button>
-        </form>
-        {% for movie in movies %}
-        <div class="movie-card">
-            <h3>{{ movie.name }}</h3>
-            <img src="{{ movie.bannerUrl }}" alt="{{ movie.name }}">
-            <p><strong>Genre:</strong> {{ movie.genre }}</p>
-            <p><strong>Year:</strong> {{ movie.releaseYear }}</p>
+<body class="gradient-bg text-gray-200 min-h-screen p-4 sm:p-8">
+
+    <div class="container mx-auto max-w-7xl">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-white mb-3">Browse Movies</h1>
+            <a href="/" class="text-indigo-400 hover:text-indigo-300 transition-colors duration-300">&larr; Back to Home</a>
         </div>
-        {% endfor %}
+        
+        <form method="GET" class="search-form max-w-xl mx-auto mb-10">
+            <div class="relative">
+                <input 
+                    type="text" 
+                    name="user_input" 
+                    placeholder="Search for a movie..." 
+                    value="{{ query }}"
+                    class="w-full px-5 py-3 rounded-full bg-slate-800/80 border border-white/10 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300"
+                >
+                <button 
+                    type="submit"
+                    class="absolute top-1/2 right-2 -translate-y-1/2 px-5 py-2 text-sm bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 transition-colors duration-300 focus:outline-none"
+                >
+                    Search
+                </button>
+            </div>
+        </form>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {% for movie in movies %}
+            <div class="movie-card bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden transform hover:-translate-y-2 transition-transform duration-300">
+                <img src="{{ movie.bannerUrl }}" alt="Poster for {{ movie.name }}">
+                <div class="p-4">
+                    <h3 class="text-lg font-bold text-white truncate" title="{{ movie.name }}">{{ movie.name }}</h3>
+                    <div class="text-sm text-gray-400 mt-1 space-y-1">
+                        <p><strong>Genre:</strong> {{ movie.genre }}</p>
+                        <p><strong>Year:</strong> {{ movie.releaseYear }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
+
 </body>
 </html>

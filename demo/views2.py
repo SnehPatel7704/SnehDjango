@@ -22,7 +22,7 @@ def chat_view(request):
         try:
             genai.configure(api_key="AIzaSyCWp3sMwUR0NNIF80pPkW3xlmz8mEQj2_A") 
             
-            system_instruction = "You are a helpful and friendly assistant named ChatMCA."
+            system_instruction = "You are a helpful and friendly assistant named ChatMCA. Always respond in a polite and professional manner. developed by MCA student name Sneh."
             
             model = genai.GenerativeModel(
                 model_name='gemini-2.5-flash',
