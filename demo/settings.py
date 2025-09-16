@@ -17,8 +17,10 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMP_DIR = os.path.join(BASE_DIR, 'templates')
 
+
 # GEMINI_API_KEY = 'AIzaSyCWp3sMwUR0NNIF80pPkW3xlmz8mEQj2_A'AIzaSyA84V7USdqywTDfCP-GJCpRMYTBxJtYmlE
 GEMINI_API_KEY = 'AIzaSyA84V7USdqywTDfCP-GJCpRMYTBxJtYmlE'
+GOOGLE_API_KEY = 'AIzaSyA84V7USdqywTDfCP-GJCpRMYTBxJtYmlE'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

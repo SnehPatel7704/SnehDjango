@@ -1,32 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
-
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ChatMCA</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-            rel="stylesheet">
-        <style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatMCA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
         :root {
-            /* Default Theme: Indigo */
-            --accent-color: 79 70 229; /* RGB for indigo-600 */
-            --accent-color-dark: 67 56 202; /* RGB for indigo-700 */
+            --accent-color: 79 70 229;
+            --accent-color-dark: 67 56 202;
             --spotlight-color: rgba(79, 70, 229, 0.15);
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* A more subtle, professional gradient background with mouse-tracking spotlight */
+        body { font-family: 'Inter', sans-serif; }
         .gradient-bg {
-            background-image: 
+            background-image:
                 radial-gradient(
-                    800px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), 
+                    800px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px),
                     var(--spotlight-color),
                     transparent 40%
                 ),
@@ -34,286 +26,320 @@
             background-size: auto, 600% 600%;
             animation: gradient 16s ease infinite;
         }
-
         @keyframes gradient {
             0% { background-position: 0% 0%, 0% 50%; }
             50% { background-position: 0% 0%, 100% 50%; }
             100% { background-position: 0% 0%, 0% 50%; }
         }
-
-        /* Custom scrollbar */
-        .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 3px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
+        .chat-messages::-webkit-scrollbar, .history-container::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track, .history-container::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb, .history-container::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 3px; }
         textarea::-webkit-scrollbar { display: none; }
-        
-        /* Themed element styles */
         .themed-bg { background-color: rgb(var(--accent-color)); }
         .themed-bg-hover:hover { background-color: rgb(var(--accent-color-dark)); }
         .themed-text { color: rgb(var(--accent-color)); }
         .themed-ring-focus:focus { --tw-ring-color: rgb(var(--accent-color)); }
-
+        .chat-item.active { background-color: rgb(var(--accent-color) / 0.2); }
     </style>
-    </head>
+</head>
+<body class="gradient-bg text-gray-200 min-h-screen flex items-center justify-center p-2 sm:p-4">
+    <div class="w-full max-w-6xl h-[95vh] flex gap-4">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-1/4 flex flex-col bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-white/10">
+                <button id="new-chat-button" class="w-full themed-bg themed-bg-hover text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New Chat
+                </button>
+            </div>
+            <div class="history-container flex-1 p-2 overflow-y-auto">
+                <h2 class="text-sm font-semibold text-gray-400 px-2 mb-2">Chat History</h2>
+                <div id="chat-history-list">
+                    <!-- Chat history from backend will be rendered here -->
+                </div>
+            </div>
+            <div class="p-4 border-t border-white/10">
+                <a href="/" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                    Back to Home
+                </a>
+            </div>
+        </div>
 
-    <body
-        class="gradient-bg text-gray-200 min-h-screen flex items-center justify-center p-2 sm:p-4">
-        <div id="chat-container"
-            class="chat-container w-full max-w-3xl h-[95vh] flex flex-col bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden">
-
-            <div
-                class="chat-header relative p-4 flex items-center justify-center gap-3 bg-black/20 text-center text-lg font-bold text-white shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round" class="themed-text"><path
-                        d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        <!-- Main Chat Area -->
+        <div id="chat-container" class="w-3/4 flex flex-col bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+            <div class="chat-header relative p-4 flex items-center justify-center gap-3 bg-black/20 text-center text-lg font-bold text-white shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="themed-text"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                 <span>ChatMCA</span>
-                <div
-                    class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <button id="theme-button"
-                        class="p-2 text-gray-400 hover:text-indigo-400 hover:bg-white/10 rounded-full transition-all duration-200"
-                        title="Change Theme">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18"
-                            height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"><circle cx="12" cy="12"
-                                r="10"></circle><path
-                                d="M12 2a7 7 0 1 0 10 10"></path></svg>
-                    </button>
-                    <button id="clear-button"
-                        class="p-2 text-gray-400 hover:text-red-400 hover:bg-white/10 rounded-full transition-all duration-200"
-                        title="Clear Chat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18"
-                            height="18" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"><polyline
-                                points="3 6 5 6 21 6"></polyline><path
-                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line
-                                x1="10" y1="11" x2="10" y2="17"></line><line
-                                x1="14" y1="11" x2="14" y2="17"></line></svg>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <button id="theme-button" class="p-2 text-gray-400 hover:text-indigo-400 hover:bg-white/10 rounded-full transition-all duration-200" title="Change Theme">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a7 7 0 1 0 10 10"></path></svg>
                     </button>
                 </div>
             </div>
 
-            <div id="messages"
-                class="chat-messages flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col gap-6">
-                <div id="welcome-message"
-                    class="message-group flex items-start gap-3 justify-start">
-                    <div
-                        class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round"><path
-                                d="m12 14 4-4"></path><path
-                                d="M12 14 8 10"></path><path
-                                d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg>
+            <div id="messages" class="chat-messages flex-1 p-4 sm:p-6 overflow-y-auto flex flex-col gap-6">
+                {% if not active_chat or not active_chat.history %}
+                <div id="welcome-message" class="message-group flex items-start gap-3 justify-start">
+                    <div class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M12 14 8 10"></path><path d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg>
                     </div>
-                    <div
-                        class="assistant-message bg-slate-700 text-gray-200 p-3 px-4 rounded-xl rounded-bl-none shadow-md max-w-md">
+                    <div class="assistant-message bg-slate-700 text-gray-200 p-3 px-4 rounded-xl rounded-bl-none shadow-md max-w-md">
                         Hello! I am ChatMCA. How can I help you today?
                     </div>
                 </div>
-
-                {% for message in chat_history %}
-                {% if message.role == 'user' %}
-                <div class="message-group flex items-start gap-3 justify-end">
-                    <div
-                        class="user-message themed-bg text-white p-3 px-4 rounded-xl rounded-br-none shadow-lg max-w-md order-1">
-                        {{ message.content }}
-                    </div>
-                    <div
-                        class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-white order-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round"><path
-                                d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle
-                                cx="12" cy="7" r="4"></circle></svg>
-                    </div>
-                </div>
                 {% else %}
-                <div class="message-group flex items-start gap-3 justify-start">
-                    <div
-                        class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round"><path
-                                d="m12 14 4-4"></path><path
-                                d="M12 14 8 10"></path><path
-                                d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg>
-                    </div>
-                    <div
-                        class="assistant-message bg-slate-700 text-gray-200 p-3 px-4 rounded-xl rounded-bl-none shadow-md max-w-md">
-                        {{ message.content }}
-                    </div>
-                </div>
+                    {% for message in active_chat.history %}
+                        {% if message.role == 'user' %}
+                        <div class="message-group flex items-start gap-3 justify-end">
+                            <div class="user-message themed-bg text-white p-3 px-4 rounded-xl rounded-br-none shadow-lg max-w-md order-1">{{ message.content }}</div>
+                            <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-white order-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                        </div>
+                        {% else %}
+                        <div class="message-group flex items-start gap-3 justify-start">
+                            <div class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M12 14 8 10"></path><path d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg></div>
+                            <div class="assistant-message bg-slate-700 text-gray-200 p-3 px-4 rounded-xl rounded-bl-none shadow-md max-w-md">{{ message.content }}</div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
                 {% endif %}
-                {% endfor %}
             </div>
 
-            <div
-                class="chat-input-area p-4 sm:p-5 border-t border-white/10 bg-black/20">
-                <form id="chat-form" method="post"
-                    class="w-full flex items-end gap-3">
+            <div class="chat-input-area p-4 sm:p-5 border-t border-white/10 bg-black/20">
+                <form id="chat-form" method="post" class="w-full flex items-end gap-3">
                     {% csrf_token %}
-                    <textarea name="message" id="chat-input"
-                        placeholder="Send a message..." rows="1"
-                        class="themed-ring-focus flex-1 px-4 py-2.5 resize-none rounded-xl bg-slate-800 border border-transparent text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200"></textarea>
-                    <button type="submit" id="send-button"
-                        class="themed-bg themed-bg-hover w-11 h-11 flex items-center justify-center text-white font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 themed-ring-focus transition-colors duration-200 disabled:bg-slate-600 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20"
-                            height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round"
-                            class="-rotate-45"><line x1="22" y1="2" x2="11"
-                                y2="13"></line><polygon
-                                points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <textarea name="message" id="chat-input" placeholder="Send a message..." rows="1" class="themed-ring-focus flex-1 px-4 py-2.5 resize-none rounded-xl bg-slate-800 border border-transparent text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-200"></textarea>
+                    <button type="submit" id="send-button" class="themed-bg themed-bg-hover w-11 h-11 flex items-center justify-center text-white font-semibold rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 themed-ring-focus transition-colors duration-200 disabled:bg-slate-600 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="-rotate-45"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </form>
             </div>
         </div>
+    </div>
 
-        <script>
-        // --- Theme Management ---
-        const themeButton = document.getElementById('theme-button');
-        const themes = {
-            indigo: { name: 'Indigo', values: { '--accent-color': '79 70 229', '--accent-color-dark': '67 56 202', '--spotlight-color': 'rgba(79, 70, 229, 0.15)' } },
-            emerald: { name: 'Emerald', values: { '--accent-color': '5 150 105', '--accent-color-dark': '4 120 87', '--spotlight-color': 'rgba(5, 150, 105, 0.15)' } },
-            rose: { name: 'Rose', values: { '--accent-color': '225 29 72', '--accent-color-dark': '190 18 60', '--spotlight-color': 'rgba(225, 29, 72, 0.15)' } },
-            sky: { name: 'Sky', values: { '--accent-color': '2 132 199', '--accent-color-dark': '3 105 161', '--spotlight-color': 'rgba(2, 132, 199, 0.15)' } }
-        };
-        const themeNames = Object.keys(themes);
-        let currentThemeIndex = 0;
+    {{ chat_sessions|json_script:"chat-sessions-data" }}
+    {{ active_chat|json_script:"active-chat-data" }}
 
-        function applyTheme(themeName) {
-            const theme = themes[themeName];
-            if (!theme) return;
-            
-            Object.entries(theme.values).forEach(([key, value]) => {
-                document.documentElement.style.setProperty(key, value);
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const messagesContainer = document.getElementById('messages');
+    const sendButton = document.getElementById('send-button');
+    const newChatButton = document.getElementById('new-chat-button');
+    const themeButton = document.getElementById('theme-button');
+    const chatHistoryList = document.getElementById('chat-history-list');
+    let welcomeMessage = document.getElementById('welcome-message');
+
+    let sessions = JSON.parse(document.getElementById('chat-sessions-data').textContent);
+    let activeChat = JSON.parse(document.getElementById('active-chat-data').textContent);
+    let activeChatId = activeChat ? activeChat.id : null;
+
+    // --- THEME HANDLING ---
+    const themes = {
+        indigo: { values: { '--accent-color': '79 70 229', '--accent-color-dark': '67 56 202', '--spotlight-color': 'rgba(79, 70, 229, 0.15)' } },
+        emerald: { values: { '--accent-color': '5 150 105', '--accent-color-dark': '4 120 87', '--spotlight-color': 'rgba(5, 150, 105, 0.15)' } },
+        rose: { values: { '--accent-color': '225 29 72', '--accent-color-dark': '190 18 60', '--spotlight-color': 'rgba(225, 29, 72, 0.15)' } },
+        sky: { values: { '--accent-color': '2 132 199', '--accent-color-dark': '3 105 161', '--spotlight-color': 'rgba(2, 132, 199, 0.15)' } }
+    };
+    const themeNames = Object.keys(themes);
+    let currentThemeIndex = 0;
+
+    function applyTheme(themeName) {
+        const theme = themes[themeName];
+        if (!theme) return;
+        Object.entries(theme.values).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(key, value);
+        });
+        localStorage.setItem('chatTheme', themeName);
+        currentThemeIndex = themeNames.indexOf(themeName);
+    }
+
+    themeButton.addEventListener('click', () => {
+        currentThemeIndex = (currentThemeIndex + 1) % themeNames.length;
+        applyTheme(themeNames[currentThemeIndex]);
+    });
+
+    // --- AVATARS ---
+    const assistantAvatar = `<div class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M12 14 8 10"></path><path d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg></div>`;
+    const userAvatar = `<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-white order-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
+
+    // --- UTILITY FUNCTIONS ---
+    function scrollToBottom() { messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+    function adjustTextareaHeight() {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = `${Math.min(chatInput.scrollHeight, 200)}px`;
+    }
+
+    // --- MESSAGE HANDLING ---
+    function addMessage(role, content) {
+        const messageGroup = document.createElement('div');
+        messageGroup.classList.add('message-group', 'flex', 'items-start', 'gap-3');
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.textContent = content;
+
+        if (role === 'user') {
+            messageGroup.classList.add('justify-end');
+            bubbleDiv.classList.add('user-message', 'themed-bg', 'text-white', 'p-3', 'px-4', 'rounded-xl', 'rounded-br-none', 'shadow-lg', 'max-w-md', 'order-1');
+            messageGroup.innerHTML = bubbleDiv.outerHTML + userAvatar;
+        } else {
+            messageGroup.classList.add('justify-start');
+            bubbleDiv.classList.add('assistant-message', 'bg-slate-700', 'text-gray-200', 'p-3', 'px-4', 'rounded-xl', 'rounded-bl-none', 'shadow-md', 'max-w-md');
+            messageGroup.innerHTML = assistantAvatar + bubbleDiv.outerHTML;
+        }
+        messagesContainer.appendChild(messageGroup);
+        scrollToBottom();
+    }
+
+    function renderMessages(history) {
+        messagesContainer.innerHTML = '';
+        if (!history || history.length === 0) {
+            if (welcomeMessage) {
+                messagesContainer.appendChild(welcomeMessage);
+            }
+            return;
+        }
+        history.forEach(msg => addMessage(msg.role, msg.content));
+    }
+
+    // --- CHAT HISTORY HANDLING ---
+    function renderChatHistory() {
+        chatHistoryList.innerHTML = '';
+        sessions.forEach(chat => {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-slate-700/50';
+            if (chat.id === activeChatId) {
+                chatItem.classList.add('active');
+            }
+            chatItem.innerHTML = `
+                <span class="text-sm truncate">${chat.title}</span>
+                <button class="delete-chat-button p-1 text-gray-500 hover:text-red-400" data-id="${chat.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            `;
+            chatHistoryList.appendChild(chatItem);
+
+            chatItem.querySelector('.delete-chat-button').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const chatId = e.currentTarget.dataset.id;
+                await deleteChat(chatId);
             });
-            
-            localStorage.setItem('chatTheme', themeName);
-            currentThemeIndex = themeNames.indexOf(themeName);
-        }
 
-        themeButton.addEventListener('click', () => {
-            currentThemeIndex = (currentThemeIndex + 1) % themeNames.length;
-            const newThemeName = themeNames[currentThemeIndex];
-            applyTheme(newThemeName);
+            chatItem.addEventListener('click', async () => {
+                if (chat.id !== activeChatId) {
+                    await loadChat(chat.id);
+                }
+            });
         });
+    }
 
-        // --- Chat Application Logic ---
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const messagesContainer = document.getElementById('messages');
-        const sendButton = document.getElementById('send-button');
-        const clearButton = document.getElementById('clear-button');
-        const welcomeMessage = document.getElementById('welcome-message');
+    async function deleteChat(chatId) {
+        const formData = new FormData();
+        formData.append('action', 'delete_chat');
+        formData.append('chat_id', chatId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
-        const assistantAvatar = `<div class="w-8 h-8 rounded-full themed-bg flex items-center justify-center flex-shrink-0 text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"></path><path d="M12 14 8 10"></path><path d="M12 2a10 10 0 0 0-10 10c0 5 4.5 10 10 10s10-5 10-10A10 10 0 0 0 12 2Z"></path></svg></div>`;
-        const userAvatar = `<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 text-white order-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>`;
-
-        function scrollToBottom() {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function addMessage(role, content) {
-            const messageGroup = document.createElement('div');
-            messageGroup.classList.add('message-group', 'flex', 'items-start', 'gap-3');
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.textContent = content;
-
-            if (role === 'user') {
-                messageGroup.classList.add('justify-end');
-                bubbleDiv.classList.add('user-message', 'themed-bg', 'text-white', 'p-3', 'px-4', 'rounded-xl', 'rounded-br-none', 'shadow-lg', 'max-w-md', 'order-1');
-                messageGroup.innerHTML = bubbleDiv.outerHTML + userAvatar;
-            } else {
-                messageGroup.classList.add('justify-start');
-                bubbleDiv.classList.add('assistant-message', 'bg-slate-700', 'text-gray-200', 'p-3', 'px-4', 'rounded-xl', 'rounded-bl-none', 'shadow-md', 'max-w-md');
-                messageGroup.innerHTML = assistantAvatar + bubbleDiv.outerHTML;
-            }
-            messagesContainer.appendChild(messageGroup);
-            scrollToBottom();
-        }
-
-        function adjustTextareaHeight() {
-            chatInput.style.height = 'auto';
-            const newHeight = Math.min(chatInput.scrollHeight, 200);
-            chatInput.style.height = `${newHeight}px`;
-        }
-
-        chatInput.addEventListener('input', adjustTextareaHeight);
-
-        chatForm.addEventListener('submit', async function (event) {
-            event.preventDefault();
-            const userMessage = chatInput.value.trim();
-            if (!userMessage) return;
-            if (welcomeMessage) welcomeMessage.style.display = 'none';
-
-            addMessage('user', userMessage);
-            chatInput.value = '';
-            adjustTextareaHeight();
-            sendButton.disabled = true;
-
-            try {
-                const formData = new FormData();
-                formData.append('message', userMessage);
-                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-                const response = await fetch('', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (response.ok) {
-                    const data = await response.json();
-                    const assistantMessage = data.chat_history[data.chat_history.length - 1];
-                    addMessage('assistant', assistantMessage.content);
+        try {
+            const response = await fetch('', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.status === 'success') {
+                sessions = data.sessions;
+                if (activeChatId === chatId) {
+                    // If the active chat was deleted, load the new active one
+                    await loadChat(data.active_chat_id);
                 } else {
-                    const errorData = await response.json(); addMessage('assistant', `Error: ${errorData.error}`);
+                    renderChatHistory();
                 }
-            } catch (error) {
-                addMessage('assistant', "I'm sorry, an error occurred. Please try again.");
-            } finally {
-                sendButton.disabled = false;
-                chatInput.focus();
             }
-        });
-        
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.dispatchEvent(new Event('submit')); }
-        });
+        } catch (error) {
+            console.error("Error deleting chat:", error);
+        }
+    }
 
-        clearButton.addEventListener('click', async function() {
-            try {
-                const formData = new FormData();
-                formData.append('clear_history', 'true');
-                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-                const response = await fetch('', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.status === 'success') {
-                        messagesContainer.querySelectorAll('.message-group:not(#welcome-message)').forEach(msg => msg.remove());
-                        if(welcomeMessage) welcomeMessage.style.display = 'flex';
-                    }
-                }
-            } catch (error) { console.error("Error clearing chat:", error); }
-        });
-        
-        window.addEventListener('mousemove', e => {
-            document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
-            document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
-        });
+    async function loadChat(chatId) {
+        activeChatId = chatId;
+        const activeSession = sessions.find(s => s.id === chatId);
+        if (activeSession) {
+            renderMessages(activeSession.history);
+            renderChatHistory(); // Re-render to update active highlight
+        } else {
+            // If chat not found in current sessions, reload the page to get fresh data
+            window.location.reload();
+        }
+    }
 
-        // Initialize theme and scroll position on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('chatTheme') || 'indigo';
-            applyTheme(savedTheme);
-            scrollToBottom();
-        });
+    // --- EVENT LISTENERS ---
+    chatInput.addEventListener('input', adjustTextareaHeight);
+
+    chatForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const userMessage = chatInput.value.trim();
+        if (!userMessage) return;
+        
+        if (welcomeMessage) {
+            welcomeMessage.style.display = 'none';
+            welcomeMessage = null;
+        }
+
+        addMessage('user', userMessage);
+        chatInput.value = '';
+        adjustTextareaHeight();
+        sendButton.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('message', userMessage);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            const response = await fetch('', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+
+            if (response.ok) {
+                sessions = data.sessions;
+                const activeChat = data.active_chat;
+                activeChatId = activeChat.id;
+                renderMessages(activeChat.history);
+                renderChatHistory();
+            } else {
+                addMessage('assistant', `Error: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            addMessage('assistant', "I'm sorry, a network error occurred. Please try again.");
+        } finally {
+            sendButton.disabled = false;
+            chatInput.focus();
+        }
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.dispatchEvent(new Event('submit')); }
+    });
+
+    newChatButton.addEventListener('click', async () => {
+        const formData = new FormData();
+        formData.append('action', 'new_chat');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        try {
+            const response = await fetch('', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.status === 'success') {
+                window.location.reload(); // Easiest way to handle new chat creation
+            }
+        } catch (error) {
+            console.error("Error creating new chat:", error);
+        }
+    });
+
+    window.addEventListener('mousemove', e => {
+        document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
+        document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
+    });
+
+    // --- INITIALIZATION ---
+    applyTheme(localStorage.getItem('chatTheme') || 'indigo');
+    renderChatHistory();
+    scrollToBottom();
+});
     </script>
-
-    </body>
+</body>
 </html>
