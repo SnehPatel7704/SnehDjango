@@ -244,11 +244,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data.status === 'success') {
                 sessions = data.sessions;
-                if (activeChatId === chatId) {
-                    // If the active chat was deleted, load the new active one
-                    await loadChat(data.active_chat_id);
+                if (data.active_chat_id) {
+                    activeChatId = data.active_chat_id;
+                    await loadChat(activeChatId, false); // Load new active chat, don't re-fetch sessions
                 } else {
-                    renderChatHistory();
+                    // No chats left, reload to get a fresh new chat
+                    window.location.reload();
                 }
             }
         } catch (error) {
@@ -256,15 +257,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadChat(chatId) {
+    async function loadChat(chatId, fetchSessions = true) {
         activeChatId = chatId;
-        const activeSession = sessions.find(s => s.id === chatId);
-        if (activeSession) {
-            renderMessages(activeSession.history);
-            renderChatHistory(); // Re-render to update active highlight
-        } else {
-            // If chat not found in current sessions, reload the page to get fresh data
-            window.location.reload();
+        const formData = new FormData();
+        formData.append('action', 'load_chat');
+        formData.append('chat_id', chatId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        try {
+            const response = await fetch('', { method: 'POST', body: formData });
+            const data = await response.json();
+            if (data.status === 'success') {
+                activeChat = data.active_chat;
+                renderMessages(activeChat.history);
+                if (fetchSessions) {
+                    // Re-fetch sessions if needed, or rely on the backend to send updated sessions
+                    // For now, we'll just re-render history to update active state
+                    renderChatHistory(); 
+                }
+            } else {
+                console.error("Error loading chat:", data.error);
+            }
+        } catch (error) {
+            console.error("Error loading chat:", error);
         }
     }
 

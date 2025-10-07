@@ -5,8 +5,11 @@ import uuid
 import google.generativeai as genai
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from .models import ChatSession, ChatMessage
 
 # --- Best Practice: Configure the API and Model Once ---
 try:
@@ -27,33 +30,36 @@ except (AttributeError, ValueError) as e:
 
 # ---------------------------------------------------------
 
-def get_or_create_session_data(request):
-    if 'chat_sessions' not in request.session:
-        request.session['chat_sessions'] = []
-        request.session['active_chat_id'] = None
-
-    if not request.session['chat_sessions']:
-        new_chat_id = str(uuid.uuid4())
-        request.session['chat_sessions'].append({
-            "id": new_chat_id,
-            "title": "New Chat",
-            "history": []
-        })
-        request.session['active_chat_id'] = new_chat_id
-        request.session.modified = True
-
-def get_active_chat(request):
-    active_id = request.session.get('active_chat_id')
-    if not active_id:
-        return None
-    for session in request.session['chat_sessions']:
-        if session['id'] == active_id:
-            return session
-    return None
-
+@login_required
 @csrf_exempt
 def chat_view(request):
-    get_or_create_session_data(request)
+    user = request.user
+    
+    # Ensure a user exists for testing purposes if not authenticated
+    if not user.is_authenticated:
+        # This part should ideally be handled by Django's authentication system
+        # For demonstration, we'll get the first user or create one
+        user = User.objects.first()
+        if not user:
+            user = User.objects.create_user(username='testuser', password='testpassword')
+            user.save()
+
+    # Get or create active chat session
+    active_chat_id = request.session.get('active_chat_id')
+    active_chat_session = None
+    if active_chat_id:
+        try:
+            active_chat_session = ChatSession.objects.get(id=active_chat_id, user=user)
+        except ChatSession.DoesNotExist:
+            active_chat_session = None
+
+    if not active_chat_session:
+        # If no active chat or it doesn't exist, get the most recent one or create a new one
+        active_chat_session = ChatSession.objects.filter(user=user).order_by('-created_at').first()
+        if not active_chat_session:
+            active_chat_session = ChatSession.objects.create(user=user, title="New Chat")
+        request.session['active_chat_id'] = active_chat_session.id
+        request.session.modified = True
 
     if request.method == 'POST':
         if not model:
@@ -62,75 +68,124 @@ def chat_view(request):
         action = request.POST.get('action')
 
         if action == 'new_chat':
-            new_chat_id = str(uuid.uuid4())
-            new_chat = {"id": new_chat_id, "title": "New Chat", "history": []}
-            request.session['chat_sessions'].insert(0, new_chat)
-            request.session['active_chat_id'] = new_chat_id
+            new_chat_session = ChatSession.objects.create(user=user, title="New Chat")
+            request.session['active_chat_id'] = new_chat_session.id
             request.session.modified = True
-            return JsonResponse({"status": "success", "new_chat_id": new_chat_id, "sessions": request.session['chat_sessions']})
+            chat_sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+            sessions_data = [{'id': chat.id, 'title': chat.title} for chat in chat_sessions]
+            return JsonResponse({"status": "success", "new_chat_id": new_chat_session.id, "sessions": sessions_data})
 
         if action == 'delete_chat':
             chat_id = request.POST.get('chat_id')
-            request.session['chat_sessions'] = [s for s in request.session['chat_sessions'] if s['id'] != chat_id]
-            if request.session['active_chat_id'] == chat_id:
-                if request.session['chat_sessions']:
-                    request.session['active_chat_id'] = request.session['chat_sessions'][0]['id']
-                else:
-                    # If all chats are deleted, create a new one
-                    get_or_create_session_data(request) # This will create a new default chat
-            request.session.modified = True
-            return JsonResponse({"status": "success", "sessions": request.session['chat_sessions'], "active_chat_id": request.session['active_chat_id']})
+            try:
+                chat_to_delete = ChatSession.objects.get(id=chat_id, user=user)
+                chat_to_delete.delete()
+                
+                # Set a new active chat if the deleted one was active
+                if str(active_chat_session.id) == chat_id:
+                    new_active_chat = ChatSession.objects.filter(user=user).order_by('-created_at').first()
+                    if new_active_chat:
+                        request.session['active_chat_id'] = new_active_chat.id
+                    else:
+                        # If no chats left, create a new one
+                        new_active_chat = ChatSession.objects.create(user=user, title="New Chat")
+                        request.session['active_chat_id'] = new_active_chat.id
+                request.session.modified = True
+
+                chat_sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+                sessions_data = [{'id': chat.id, 'title': chat.title} for chat in chat_sessions]
+                return JsonResponse({"status": "success", "sessions": sessions_data, "active_chat_id": request.session['active_chat_id']})
+            except ChatSession.DoesNotExist:
+                return JsonResponse({"error": "Chat session not found."}, status=404)
 
         if action == 'load_chat':
             chat_id = request.POST.get('chat_id')
-            request.session['active_chat_id'] = chat_id
-            request.session.modified = True
-            active_chat = get_active_chat(request)
-            return JsonResponse({"status": "success", "active_chat": active_chat})
+            try:
+                chat_to_load = ChatSession.objects.get(id=chat_id, user=user)
+                request.session['active_chat_id'] = chat_to_load.id
+                request.session.modified = True
+                
+                messages = chat_to_load.messages.all().order_by('created_at')
+                active_chat_data = {
+                    'id': chat_to_load.id,
+                    'title': chat_to_load.title,
+                    'history': [{'role': msg.role, 'content': msg.content} for msg in messages]
+                }
+                return JsonResponse({"status": "success", "active_chat": active_chat_data})
+            except ChatSession.DoesNotExist:
+                return JsonResponse({"error": "Chat session not found."}, status=404)
 
         # Default action: process a message
         user_input = request.POST.get('message', '').strip()
         if not user_input:
             return JsonResponse({"error": "Message cannot be empty."}, status=400)
 
-        active_chat = get_active_chat(request)
-        if not active_chat:
+        if not active_chat_session:
              return JsonResponse({"error": "No active chat session found."}, status=400)
 
-        active_chat['history'].append({"role": "user", "content": user_input})
+        # Save user message to database
+        ChatMessage.objects.create(chat_session=active_chat_session, role="user", content=user_input)
         
-        # Generate a title for new chats
-        if len(active_chat['history']) == 1 and active_chat['title'] == "New Chat":
+        # Generate a title for new chats if it's the first message
+        if active_chat_session.title == "New Chat" and active_chat_session.messages.count() == 1:
             try:
                 title_prompt = f"Generate a very short, concise title (3-5 words) for this user query: \"{user_input}\". Do not use quotes in the title."
                 title_response = model.generate_content(title_prompt)
-                active_chat['title'] = title_response.text.strip()
+                active_chat_session.title = title_response.text.strip()
+                active_chat_session.save()
             except Exception as e:
                 print(f"Error generating title: {e}")
-                active_chat['title'] = user_input[:30] # Fallback title
+                active_chat_session.title = user_input[:30] # Fallback title
+                active_chat_session.save()
 
         try:
+            # Retrieve full history for Gemini
+            full_history = active_chat_session.messages.all().order_by('created_at')
             gemini_history = []
-            for msg in active_chat['history'][:-1]:
-                role = "model" if msg['role'] == 'assistant' else "user"
-                gemini_history.append({'role': role, 'parts': [msg['content']]})
+            for msg in full_history:
+                role = "model" if msg.role == 'assistant' else "user"
+                gemini_history.append({'role': role, 'parts': [msg.content]})
             
-            chat_session = model.start_chat(history=gemini_history)
-            response = chat_session.send_message(user_input)
+            # The last message is the current user_input, which should not be in history for start_chat
+            # It should be sent as the current message
+            chat_session_gemini = model.start_chat(history=gemini_history[:-1]) # Exclude the current user message
+            response = chat_session_gemini.send_message(user_input)
             assistant_response = response.text
 
-            active_chat['history'].append({"role": "assistant", "content": assistant_response})
-            request.session.modified = True
+            # Save assistant response to database
+            ChatMessage.objects.create(chat_session=active_chat_session, role="assistant", content=assistant_response)
             
-            return JsonResponse({"active_chat": active_chat, "sessions": request.session['chat_sessions']})
+            # Prepare active_chat data for JSON response
+            updated_messages = active_chat_session.messages.all().order_by('created_at')
+            active_chat_data = {
+                'id': active_chat_session.id,
+                'title': active_chat_session.title,
+                'history': [{'role': msg.role, 'content': msg.content} for msg in updated_messages]
+            }
+            chat_sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+            sessions_data = [{'id': chat.id, 'title': chat.title} for chat in chat_sessions]
+            
+            return JsonResponse({"active_chat": active_chat_data, "sessions": sessions_data})
 
         except Exception as e:
             error_message = f"An API error occurred: {str(e)}"
             return JsonResponse({"error": error_message}, status=500)
 
     # For GET requests
-    active_chat = get_active_chat(request)
+    chat_sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+    sessions_data = [{'id': chat.id, 'title': chat.title} for chat in chat_sessions]
+    
+    active_chat_data = None
+    if active_chat_session:
+        messages = active_chat_session.messages.all().order_by('created_at')
+        active_chat_data = {
+            'id': active_chat_session.id,
+            'title': active_chat_session.title,
+            'history': [{'role': msg.role, 'content': msg.content} for msg in messages]
+        }
+
     return render(request, 'chat.html', {
-        'chat_sessions': request.session.get('chat_sessions', []),
-        'active_chat': active_chat
+        'chat_sessions': sessions_data,
+        'active_chat': active_chat_data
     })
+
